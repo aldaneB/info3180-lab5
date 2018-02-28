@@ -27,11 +27,28 @@ def about():
     """Render the website's about page."""
     return render_template('about.html')
 
+@app.route('/secure-page')
+@login_required
+def secure_page():
+    """Render a secure page on our website that only logged in users can access."""
+    return render_template('secure_page.html')
+
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
-    form = LoginForm()
-    if request.method == "POST":
+    
+    if current_user.is_authenticated: #used to check if the current user is autenticated and if true they will be naviated to the secure page
+        redirect(url_for('secure_page'))
+    
+    form = LoginForm() 
+    
+    if request.method == "POST" and form.validate_on_submit():
+        username = form.username.data#used to collect data from the form fields
+        password = form.password.data
+        
+        user = UserProfile.query.filter_by(username=username, password=password).first()#used to query the database for the username 
+        
+        
         # change this to actually validate the entire form submission
         # and not just one field
         if form.username.data:
@@ -45,9 +62,22 @@ def login():
             # get user id, load into session
             login_user(user)
 
+            flash("Successfully Logged In", 'success')
             # remember to flash a message to the user
             return redirect(url_for("home"))  # they should be redirected to a secure-page route instead
+        else:
+            flash('Username or Password is incorrect.', 'danger')
+            
+    # flash_errors(form)
     return render_template("login.html", form=form)
+
+@app.route("/logout")
+@login_required
+def logout():
+    # Logout user and end session
+    logout_user()
+    flash('You have been logged out.', 'danger')
+    return redirect(url_for('home'))
 
 
 # user_loader callback. This callback is used to reload the user object from
